@@ -10,6 +10,7 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:gql/ast.dart';
 import 'package:gql/language.dart' as gql_lang;
+import 'package:graphql_openapi_codegen/src/build_yaml_generator.dart';
 import 'package:graphql_openapi_codegen/src/class_generator.dart';
 import 'package:graphql_openapi_codegen/src/consts.dart';
 import 'package:graphql_openapi_codegen/src/doc_routes_generator.dart';
@@ -263,6 +264,11 @@ Future<void> run(List<String> args) async {
       subscriptionFiles: subscriptionFiles,
     );
     // --- Step 4: Finalization and Build ---
+
+    // `json_serializable` and `copy_with_extension_gen` only run for a
+    // package that names them, and naming them there is what spares the
+    // target package from carrying them in its own `dev_dependencies`.
+    ensureBuildYaml();
 
     logMessage('\nRunning build_runner...\n');
 

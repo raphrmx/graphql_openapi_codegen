@@ -16,7 +16,7 @@ Those two pages are what you notice first. A **GraphQL Playground** on
 the live API. A **Swagger UI** on `/rest-doc`, over the OpenAPI document the same
 run produced. Both written, both mounted, both on whatever path you want.
 
-The resolvers content are the only code you write.
+The resolver bodies are the only code you write.
 
 ```graphql
 type Query {
@@ -62,7 +62,7 @@ maintained alongside this one:
 
 | | |
 | --- | --- |
-| [graphql_parser3](https://pub.dev/packages/graphql_parser3) | reads the SDL and your queries into an AST, every node carrying a source span |
+| [graphql_parser3](https://pub.dev/packages/graphql_parser3) | parses an incoming query into an AST, for the runtime below |
 | [graphql_schema3](https://pub.dev/packages/graphql_schema3) | the type system: object, input, union, enum and scalar types |
 | [graphql_generator3](https://pub.dev/packages/graphql_generator3) | a `build_runner` builder turning the annotated model classes into those types |
 | [graphql_server3](https://pub.dev/packages/graphql_server3) | the runtime that executes a query, a mutation or a subscription against a schema |
@@ -78,12 +78,10 @@ schema.graphql
   → graphql_server3         GraphQL(schema).parseAndExecute(query)
 ```
 
-The one line you write by hand is the schema assembly, and it does not change
-when the schema does: a new query adds an entry to `queryFields`, which is
-regenerated. `example/bin/server.dart` is that line, plus a `POST /graphql`
-handler in fourteen lines of shelf.
+The schema assembly is the one line you write, and it does not change when the
+schema does. See `example/bin/server.dart`.
 
-### graphql_server3 IS NOT REQUIRED
+### graphql_server3 is optional
 
 Nothing forces you to serve GraphQL at all. The generated REST endpoints call
 your resolvers directly and never go through the executor, so leaving
@@ -97,16 +95,14 @@ document and the Swagger page stand on their own.
 | --- | --- |
 | `type` | a model class with `@graphQLClass`, `@JsonSerializable()` and optionally `@CopyWith()` |
 | `input` | the same, as a GraphQL input class |
-| `enum` | one shared `enums.dart` |
+| `enum` | one shared `enums.dart`, values keeping their SDL spelling |
 | a field with arguments | a resolver stub, created once and never overwritten |
 | `Query` / `Mutation` / `Subscription` | the field list, plus one REST endpoint each |
 | a custom `@_directive` | a validator stub, created once |
 | the whole schema | an OpenAPI 3.0.3 document |
 | the whole schema | a GraphQL Playground page and a Swagger UI page, mounted for you |
 
-Generated code is emitted lint-clean: sorted `package:` imports, a `library;`
-directive under the header, one trailing newline, no `async` on a body that
-never awaits.
+Generated code comes out lint-clean and formatted.
 
 ## Usage
 
@@ -116,11 +112,12 @@ dart run graphql_openapi_codegen
 ```
 
 It reads the SDL, writes the sources, runs `build_runner` for the `.g.dart`
-parts, then `dart format` on what it overwrites.
+parts, then `dart format` on what it wrote. It also writes a `build.yaml`
+switching on the builders it brings with it, so your `dev_dependencies` need
+hold nothing but this package.
 
-`example/` is a server built this way, small enough to read in one sitting and
-runnable in three commands. Four files in it carry hand-written logic; the rest
-came out of a nine-type schema.
+`example/` is a server built this way. Four files in it carry hand-written
+logic; the rest came out of a schema of seven definitions.
 
 ## Configuration
 
@@ -156,11 +153,8 @@ graphql_openapi_codegen:
 
 `routes` holds HTTP paths, `output` holds filesystem paths. They share some
 names on purpose: `routes.rest` is the prefix your REST endpoints answer on,
-`output.rest` is the directory `rest_routes.dart` lands in.
-
-Setting `routes.rest` prefixes both the generated `registerRestRoutes` and the
-`paths:` of the OpenAPI document, so Swagger cannot end up calling a path your
-server does not serve.
+`output.rest` is the directory `rest_routes.dart` lands in. It prefixes the
+OpenAPI `paths:` too, so Swagger cannot call a path your server does not serve.
 
 The SDL marks a type belonging to the host with a leading underscore, which is
 not a legal start for a public Dart identifier. `class_prefix` is what replaces
@@ -182,31 +176,23 @@ Created once and then yours, so the generator will not touch your work:
 - the individual validators
 - the two documentation pages
 - `graphql_resolvers_registry.dart`
-
-A file in the second list is formatted the run that creates it, and never
-again: after that it is yours, and reformatting it would rewrite your work.
+- `build.yaml`
 
 ## Requirements
 
-The generated code imports these, so the package you generate into declares
-them. `graphql_schema3` is the type system the models are annotated for and
-`graphql_generator3` is the builder that reads those annotations; add
-`graphql_server3` when you want to serve GraphQL as well as REST:
+Declare what the generated code **imports**, and nothing else:
 
 ```yaml
 dependencies:
-  graphql_schema3: ^3.2.1
-  graphql_server3: ^3.2.2         # only to serve GraphQL; REST needs none of it
-  json_annotation: ^4.12.0
+  graphql_schema3: ^3.2.1        # the type system the models are annotated for
+  json_annotation: ^4.12.0       # @JsonSerializable, @JsonKey
+  graphql_server3: ^3.2.2        # only to serve GraphQL; REST needs none of it
   copy_with_extension: ^17.1.0   # only if copy_with is left on
   shelf: ^1.4.2                  # only if the schema has Query/Mutation fields
   shelf_router: ^1.1.4           # idem, for the generated REST routes
 
 dev_dependencies:
-  build_runner: ^2.16.1
-  graphql_generator3: ^3.2.1
-  json_serializable: ^6.14.1
-  copy_with_extension_gen: ^17.1.0   # only if copy_with is left on
+  graphql_openapi_codegen: ^1.1.0
 ```
 
 ## Custom directives
@@ -228,10 +214,9 @@ You get `lib/validators/valid_vat_no.dart` with a `validVatNo(dynamic value)` to
 fill in. Name the directive after the field it guards, not after the check:
 `valid` is prefixed for you, so `@_validVat` would give you `validValidVat`.
 
-The model calls it from an **`assert`** in its constructor, so it runs under
-`dart run --enable-asserts` and is compiled out of a release build. That suits a
-check restating what the schema already promises. Input you do not trust belongs
-in the resolver, where a failure can become a 400 instead of a 500.
+The model calls it from an **`assert`**, so it runs under
+`dart run --enable-asserts` and is compiled out of a release build. Reject input
+you do not trust in the resolver instead.
 
 ## Limitations
 

@@ -1,0 +1,10 @@
+# Written once by graphql_openapi_codegen. Edit freely.
+#
+# These builders only run for a package that names them, which is what
+# this does. Without it they are skipped and the models lose their
+# `fromJson`, `toJson` and `copyWith`.
+targets:
+  $default:
+    builders:
+      json_serializable:
+        enabled: true

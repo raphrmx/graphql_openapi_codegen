@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:graphql_openapi_codegen/src/build_yaml_generator.dart';
 import 'package:graphql_openapi_codegen/src/config.dart';
 import 'package:graphql_openapi_codegen/src/dart_library.dart';
 import 'package:graphql_openapi_codegen/src/validator_generator.dart';
@@ -222,6 +223,57 @@ library;
 
     test('omits the header when there is nothing to document', () {
       expect(renderGeneratedLibrary(body: 'class A {}'), 'class A {}\n');
+    });
+  });
+
+  group('build.yaml', () {
+    /// A throwaway path in a directory that cleans itself up.
+    String tempPath() {
+      final dir = Directory.systemTemp.createTempSync('goc_build');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      return '${dir.path}/build.yaml';
+    }
+
+    test('names the builders that only run for a package declaring them', () {
+      importerConfig = const ImporterConfig(packageName: 'acme');
+      final path = tempPath();
+
+      ensureBuildYaml(path: path);
+
+      final written = File(path).readAsStringSync();
+      expect(written, contains('json_serializable:'));
+      expect(written, contains('copy_with_extension_gen:'));
+      expect(written, contains(r'$default'));
+      // graphql_generator3 is auto_apply: root_package, so it needs no entry.
+      expect(written, isNot(contains('graphql_generator3')));
+    });
+
+    test('leaves copy_with_extension_gen out when copy_with is off', () {
+      importerConfig = const ImporterConfig(
+        packageName: 'acme',
+        copyWith: false,
+      );
+      final path = tempPath();
+
+      ensureBuildYaml(path: path);
+
+      final written = File(path).readAsStringSync();
+      expect(written, contains('json_serializable:'));
+      expect(written, isNot(contains('copy_with_extension_gen')));
+    });
+
+    test('never overwrites one that is already there', () {
+      importerConfig = const ImporterConfig(packageName: 'acme');
+      final path = tempPath();
+      const mine =
+          'targets:\n  \$default:\n    builders:\n'
+          '      json_serializable:\n        enabled: true\n'
+          '      copy_with_extension_gen:\n        enabled: true\n';
+      File(path).writeAsStringSync(mine);
+
+      ensureBuildYaml(path: path);
+
+      expect(File(path).readAsStringSync(), mine);
     });
   });
 

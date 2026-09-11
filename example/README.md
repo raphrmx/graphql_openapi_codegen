@@ -1,8 +1,8 @@
 # Acme Shop API
 
-A runnable server generated from a nine-type GraphQL schema. Everything under
-`lib/` except `catalogue.dart` and the two resolver bodies was written by
-`graphql_openapi_codegen`.
+A runnable server generated from a schema of seven definitions. Everything
+under `lib/` except `catalogue.dart`, the two resolver bodies and the validator
+was written by `graphql_openapi_codegen`.
 
 ```bash
 dart pub get
@@ -34,6 +34,10 @@ type Product {
   label: String!
   priceCents: Int!
   availability: Availability!
+}
+
+input ProductQuery {
+  sku: String! @_skuFormat
 }
 
 input ProductInput {
@@ -74,10 +78,15 @@ lib/routes/rest_doc_route.dart            the Swagger UI page
 lib/routes/doc_routes.dart                registerDocRoutes(Router)
 lib/validators/valid_sku_format.dart      ← filled in by hand
 assets/openapi.yaml
+build.yaml                                switches on the builders it needs
 ```
 
 Four files carry hand-written logic. The rest is regenerated, and the two
-resolvers and the validator are created once and never touched again.
+resolvers, the validator and `build.yaml` are created once and never touched
+again.
+
+This package's `dev_dependencies` hold `graphql_openapi_codegen` and nothing
+else. The builders come with it.
 
 ## What `bin/server.dart` has to do
 
@@ -95,9 +104,8 @@ registerRestRoutes(router);   // POST /rest/query/product, /rest/mutation/upsert
 registerDocRoutes(router);    // GET /docs/graphql, /docs/rest
 ```
 
-Serving `assets/openapi.yaml` is also yours, because where a file is served from
-is a deployment question. `routes.openapi` in `pubspec.yaml` is the URL the
-generated Swagger page fetches; this example answers it from disk.
+Serving `assets/openapi.yaml` is yours too: `routes.openapi` is the URL the
+Swagger page fetches, and this example answers it from disk.
 
 ## Try it
 
@@ -146,10 +154,9 @@ Nothing under `output:` is set, so the layout is the default one.
 
 ## A word about the validators
 
-`@_skuFormat` becomes an `assert` in the input's constructor, which means it
-runs in development and is **compiled out of a release build**. That is the
-right default for a check that restates what the schema already says, and the
-wrong one for rejecting hostile input. Reject that in the resolver.
+`@_skuFormat` becomes an `assert` in the input's constructor, so it is
+**compiled out of a release build**. Reject hostile input in the resolver
+instead.
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/rest/query/product \
