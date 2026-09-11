@@ -55,6 +55,42 @@ Use it if you recognise any of these:
   file;
 - your schema moves and the boilerplate never keeps up.
 
+## The stack underneath
+
+This generator writes the code. Four packages run it, all on pub.dev and all
+maintained alongside this one:
+
+| | |
+| --- | --- |
+| [graphql_parser3](https://pub.dev/packages/graphql_parser3) | reads the SDL and your queries into an AST, every node carrying a source span |
+| [graphql_schema3](https://pub.dev/packages/graphql_schema3) | the type system: object, input, union, enum and scalar types |
+| [graphql_generator3](https://pub.dev/packages/graphql_generator3) | a `build_runner` builder turning the annotated model classes into those types |
+| [graphql_server3](https://pub.dev/packages/graphql_server3) | the runtime that executes a query, a mutation or a subscription against a schema |
+
+They fit together in one direction, and the run walks the whole way:
+
+```
+schema.graphql
+  → this generator          writes Product, annotated @graphQLClass
+  → graphql_generator3      writes productGraphQLType into product_type.g.dart
+  → this generator          writes queryFields, which reference that type
+  → you                     GraphQLSchema(queryType: objectType('Query', fields: queryFields))
+  → graphql_server3         GraphQL(schema).parseAndExecute(query)
+```
+
+The one line you write by hand is the schema assembly, and it does not change
+when the schema does: a new query adds an entry to `queryFields`, which is
+regenerated. `example/bin/server.dart` is that line, plus a `POST /graphql`
+handler in fourteen lines of shelf.
+
+### graphql_server3 IS NOT REQUIRED
+
+Nothing forces you to serve GraphQL at all. The generated REST endpoints call
+your resolvers directly and never go through the executor, so leaving
+`graphql_server3` out costs you the API on `/graphql` and the Playground page,
+which `routes.graphql_doc: ''` then turns off. The endpoints, the OpenAPI
+document and the Swagger page stand on their own.
+
 ## What it writes
 
 | From the SDL | It generates |
@@ -153,11 +189,14 @@ again: after that it is yours, and reformatting it would rewrite your work.
 ## Requirements
 
 The generated code imports these, so the package you generate into declares
-them:
+them. `graphql_schema3` is the type system the models are annotated for and
+`graphql_generator3` is the builder that reads those annotations; add
+`graphql_server3` when you want to serve GraphQL as well as REST:
 
 ```yaml
 dependencies:
   graphql_schema3: ^3.2.1
+  graphql_server3: ^3.2.2         # only to serve GraphQL; REST needs none of it
   json_annotation: ^4.12.0
   copy_with_extension: ^17.1.0   # only if copy_with is left on
   shelf: ^1.4.2                  # only if the schema has Query/Mutation fields

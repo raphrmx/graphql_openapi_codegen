@@ -81,7 +81,9 @@ resolvers and the validator are created once and never touched again.
 
 ## What `bin/server.dart` has to do
 
-Mount two generated functions, and answer on `/graphql` yourself:
+Mount two generated functions, and answer on `/graphql` yourself with
+[graphql_server3](https://pub.dev/packages/graphql_server3), the runtime that
+executes a document against the schema:
 
 ```dart
 final schema = GraphQLSchema(
