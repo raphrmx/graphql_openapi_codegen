@@ -689,40 +689,47 @@ gql.ObjectTypeDefinitionNode? findObjectTypeDef(
       .firstWhereOrNull((d) => d.name.value == typeName);
 }
 
+/// Writes the schema for [type] in the OpenAPI 3.1 dialect.
+///
+/// Nullability is JSON Schema's: a type union for a scalar or an array, an
+/// `anyOf` for a reference. The `nullable: true` of 3.0 no longer exists.
 void writeTypeSchemaForYaml(
   StringBuffer b,
   gql.TypeNode type, {
   String indent = '',
-  bool wrapAllOfIfRef = false,
 }) {
   final base = getBaseTypeName(type);
-  final isList = isListType(type);
-  final isScalarType = isScalar(base);
-  final isRequired = isNonNullTop(type);
+  final nonNull = isNonNullTop(type);
+  final ref = '"#/components/schemas/$base"';
 
-  if (isList) {
-    b.writeln('${indent}type: array');
-    if (!isRequired) b.writeln('${indent}nullable: true');
+  if (isListType(type)) {
+    b.writeln(
+      nonNull ? '${indent}type: array' : '${indent}type: [array, "null"]',
+    );
     b.writeln('${indent}items:');
-    if (isScalarType) {
-      b.writeln('$indent  type: ${openApiTypeFromGraphQL(base)}');
-    } else {
-      b.writeln('$indent  \$ref: "#/components/schemas/$base"');
-    }
-  } else {
-    if (isScalarType) {
-      b.writeln('${indent}type: ${openApiTypeFromGraphQL(base)}');
-      if (!isRequired) b.writeln('${indent}nullable: true');
-    } else {
-      if (wrapAllOfIfRef) {
-        b.writeln('${indent}allOf:');
-        b.writeln('$indent  - \$ref: "#/components/schemas/$base"');
-      } else {
-        b.writeln('$indent\$ref: "#/components/schemas/$base"');
-      }
-      if (!isRequired) b.writeln('${indent}nullable: true');
-    }
+    b.writeln(
+      isScalar(base)
+          ? '$indent  type: ${openApiTypeFromGraphQL(base)}'
+          : '$indent  \$ref: $ref',
+    );
+    return;
   }
+
+  if (isScalar(base)) {
+    final scalar = openApiTypeFromGraphQL(base);
+    b.writeln(
+      nonNull ? '${indent}type: $scalar' : '${indent}type: [$scalar, "null"]',
+    );
+    return;
+  }
+
+  if (nonNull) {
+    b.writeln('$indent\$ref: $ref');
+    return;
+  }
+  b.writeln('${indent}anyOf:');
+  b.writeln('$indent  - \$ref: $ref');
+  b.writeln('$indent  - type: "null"');
 }
 
 String normalizeImportPath(String filePath, String from) {
@@ -781,14 +788,7 @@ void emitCompositeInputSchema(
     }
     if (depr) b.writeln('          deprecated: true');
 
-    final base = getBaseTypeName(arg.type);
-    final needsAllOf = !isScalar(base) && !isListType(arg.type);
-    writeTypeSchemaForYaml(
-      b,
-      arg.type,
-      indent: '          ',
-      wrapAllOfIfRef: needsAllOf,
-    );
+    writeTypeSchemaForYaml(b, arg.type, indent: '          ');
   }
 
   final baseReturn = getBaseTypeName(field.type);

@@ -6,6 +6,15 @@ import 'package:graphql_openapi_codegen/src/generated_endpoint.dart';
 import 'package:graphql_openapi_codegen/src/helpers.dart';
 import 'package:path/path.dart' as path;
 
+/// Writes the `required:` list for a set of fields, if any is non-null.
+void _writeRequired(StringBuffer b, Iterable<String> required) {
+  if (required.isEmpty) return;
+  b.writeln('      required:');
+  for (final name in required) {
+    b.writeln('        - $name');
+  }
+}
+
 void generateOpenApiYaml(
   Directory outputDir,
   gql.DocumentNode document, {
@@ -16,7 +25,7 @@ void generateOpenApiYaml(
   final out = File(path.join(outputDir.path, 'openapi.yaml'));
   final b = StringBuffer();
 
-  b.writeln('openapi: 3.0.3');
+  b.writeln('openapi: 3.1.1');
   b.writeln('info:');
   final title = importerConfig.apiName.isEmpty
       ? importerConfig.packageName
@@ -71,14 +80,7 @@ void generateOpenApiYaml(
     b.writeln('                  data:');
 
     if (field != null) {
-      final baseRet = getBaseTypeName(field.type);
-      final needsAllOfRet = !isScalar(baseRet) && !isListType(field.type);
-      writeTypeSchemaForYaml(
-        b,
-        field.type,
-        indent: '                    ',
-        wrapAllOfIfRef: needsAllOfRet,
-      );
+      writeTypeSchemaForYaml(b, field.type, indent: '                    ');
     } else {
       b.writeln('                    type: object');
     }
@@ -154,6 +156,10 @@ void generateOpenApiYaml(
         '      description: "${def.description!.value.replaceAll('"', '\\"')}"',
       );
     }
+    _writeRequired(
+      b,
+      def.fields.where((f) => isNonNullTop(f.type)).map((f) => f.name.value),
+    );
     b.writeln('      properties:');
     for (final f in def.fields) {
       final fname = f.name.value;
@@ -166,14 +172,7 @@ void generateOpenApiYaml(
       }
       if (fdepr) b.writeln('          deprecated: true');
 
-      final base = getBaseTypeName(f.type);
-      final needsAllOf = !isScalar(base) && !isListType(f.type);
-      writeTypeSchemaForYaml(
-        b,
-        f.type,
-        indent: '          ',
-        wrapAllOfIfRef: needsAllOf,
-      );
+      writeTypeSchemaForYaml(b, f.type, indent: '          ');
     }
   }
 
@@ -190,16 +189,10 @@ void generateOpenApiYaml(
       );
     }
 
-    final req = <String>[];
-    for (final f in def.fields) {
-      if (isNonNullTop(f.type)) req.add(f.name.value);
-    }
-    if (req.isNotEmpty) {
-      b.writeln('      required:');
-      for (final r in req) {
-        b.writeln('        - $r');
-      }
-    }
+    _writeRequired(
+      b,
+      def.fields.where((f) => isNonNullTop(f.type)).map((f) => f.name.value),
+    );
 
     b.writeln('      properties:');
     for (final f in def.fields) {
@@ -213,14 +206,7 @@ void generateOpenApiYaml(
       }
       if (fdepr) b.writeln('          deprecated: true');
 
-      final base = getBaseTypeName(f.type);
-      final needsAllOf = !isScalar(base) && !isListType(f.type);
-      writeTypeSchemaForYaml(
-        b,
-        f.type,
-        indent: '          ',
-        wrapAllOfIfRef: needsAllOf,
-      );
+      writeTypeSchemaForYaml(b, f.type, indent: '          ');
     }
   }
 

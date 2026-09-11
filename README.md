@@ -8,7 +8,7 @@
 
 You have a GraphQL schema and you want a Dart backend from it. Run this once and
 you have everything you need to start: the models, the enums, the resolver
-stubs, a REST endpoint for every operation, an **OpenAPI 3.0.3 document**, and
+stubs, a REST endpoint for every operation, an **OpenAPI 3.1.1 document**, and
 two pages your API serves by itself.
 
 Those two pages are what you notice first. A **GraphQL Playground** on
@@ -99,7 +99,7 @@ document and the Swagger page stand on their own.
 | a field with arguments | a resolver stub, created once and never overwritten |
 | `Query` / `Mutation` / `Subscription` | the field list, plus one REST endpoint each |
 | a custom `@_directive` | a validator stub, created once |
-| the whole schema | an OpenAPI 3.0.3 document |
+| the whole schema | an OpenAPI 3.1.1 document |
 | the whole schema | a GraphQL Playground page and a Swagger UI page, mounted for you |
 
 Generated code comes out lint-clean and formatted.

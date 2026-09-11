@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.1
 info:
   title: Acme Shop REST
   version: "1.0.0"
@@ -24,9 +24,9 @@ paths:
                 type: object
                 properties:
                   data:
-                    allOf:
+                    anyOf:
                       - $ref: "#/components/schemas/Product"
-                    nullable: true
+                      - type: "null"
   /rest/mutation/upsertProduct:
     post:
       operationId: mutationUpsertProductEndpoint
@@ -46,8 +46,7 @@ paths:
                 type: object
                 properties:
                   data:
-                    allOf:
-                      - $ref: "#/components/schemas/Product"
+                    $ref: "#/components/schemas/Product"
 components:
   schemas:
     QueryProductInput:
@@ -56,19 +55,22 @@ components:
         - query
       properties:
         query:
-          allOf:
-            - $ref: "#/components/schemas/ProductQuery"
+          $ref: "#/components/schemas/ProductQuery"
     MutationUpsertProductInput:
       type: object
       required:
         - input
       properties:
         input:
-          allOf:
-            - $ref: "#/components/schemas/ProductInput"
+          $ref: "#/components/schemas/ProductInput"
     Product:
       type: object
       description: "A product on sale."
+      required:
+        - sku
+        - label
+        - priceCents
+        - availability
       properties:
         sku:
           description: "The stock keeping unit. Unique across the catalogue."
@@ -79,8 +81,7 @@ components:
           description: "The price in cents, to keep the wire format free of floating point."
           type: integer
         availability:
-          allOf:
-            - $ref: "#/components/schemas/Availability"
+          $ref: "#/components/schemas/Availability"
     ProductQuery:
       type: object
       description: "Identifies the one product to read."
@@ -104,9 +105,9 @@ components:
         priceCents:
           type: integer
         availability:
-          allOf:
+          anyOf:
             - $ref: "#/components/schemas/Availability"
-          nullable: true
+            - type: "null"
     Availability:
       type: string
       description: "Whether a product can be ordered right now."
