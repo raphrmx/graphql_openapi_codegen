@@ -7,16 +7,16 @@ import 'package:path/path.dart' as path;
 
 /// Generates the two documentation pages and the file that mounts them.
 ///
-/// The pages are a GraphQL Playground over [ImporterConfig.docGraphQLEndpoint]
-/// and a Swagger UI over [ImporterConfig.docOpenApiUrl]. Both are written once
+/// The pages are a GraphQL Playground over [ImporterConfig.graphqlPath]
+/// and a Swagger UI over [ImporterConfig.openApiUrl]. Both are written once
 /// and never overwritten: they are a starting point, and every project ends up
 /// wiring its own authentication, CORS and branding into them.
 ///
 /// The file that mounts them is regenerated on every run, so a change of route
 /// in `pubspec.yaml` takes effect without touching the pages themselves.
 void generateDocRoutes(Directory routesDir) {
-  final wantsGraphQL = importerConfig.docGraphQLPath.isNotEmpty;
-  final wantsRest = importerConfig.docRestPath.isNotEmpty;
+  final wantsGraphQL = importerConfig.graphqlDocPath.isNotEmpty;
+  final wantsRest = importerConfig.restDocPath.isNotEmpty;
   if (!wantsGraphQL && !wantsRest) return;
 
   routesDir.createSync(recursive: true);
@@ -78,7 +78,7 @@ Handler graphQLDocHandler(Map<String, String> cors) => const Pipeline().addHandl
       document.getElementById('auth').style.display = 'none';
       document.getElementById('root').style.display = 'block';
       GraphQLPlayground.init(document.getElementById('root'), {
-        endpoint: '${importerConfig.docGraphQLEndpoint}',
+        endpoint: '${importerConfig.graphqlPath}',
         settings: { 'editor.theme': 'dark', 'request.credentials': 'same-origin' },
         headers: token ? { 'Authorization': 'Bearer ' + token } : {}
       });
@@ -103,6 +103,7 @@ Handler graphQLDocHandler(Map<String, String> cors) => const Pipeline().addHandl
     imports: ImportBlock()..add('package:shelf/shelf.dart'),
     body: body.toString(),
   );
+  createdOnceFiles.add(file.path);
 }
 
 /// The Swagger UI page, created once.
@@ -135,7 +136,7 @@ Handler restDocHandler(Map<String, String> cors) => const Pipeline().addHandler(
   <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
   <script>
     SwaggerUIBundle({
-      url: '${importerConfig.docOpenApiUrl}',
+      url: '${importerConfig.openApiUrl}',
       dom_id: '#swagger-ui',
       presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
       layout: 'StandaloneLayout',
@@ -161,6 +162,7 @@ Handler restDocHandler(Map<String, String> cors) => const Pipeline().addHandler(
     imports: ImportBlock()..add('package:shelf/shelf.dart'),
     body: body.toString(),
   );
+  createdOnceFiles.add(file.path);
 }
 
 /// The file that mounts the pages, rewritten on every run so a route changed in
@@ -182,16 +184,17 @@ void _writeDocRoutes(
 
   final body = StringBuffer();
   body.writeln(
-    'void registerDocRoutes(Router router, {String prefix = "", Map<String, String>? cors}) {',
+    'void registerDocRoutes(Router router, '
+    "{String prefix = '', Map<String, String>? cors}) {",
   );
   if (wantsGraphQL) {
     body.writeln(
-      "  router.get('\$prefix${importerConfig.docGraphQLPath}', graphQLDocHandler(cors ?? const {}));",
+      "  router.get('\$prefix${importerConfig.graphqlDocPath}', graphQLDocHandler(cors ?? const {}));",
     );
   }
   if (wantsRest) {
     body.writeln(
-      "  router.get('\$prefix${importerConfig.docRestPath}', restDocHandler(cors ?? const {}));",
+      "  router.get('\$prefix${importerConfig.restDocPath}', restDocHandler(cors ?? const {}));",
     );
   }
   body.writeln('}');

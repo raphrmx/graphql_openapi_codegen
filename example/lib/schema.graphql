@@ -1,0 +1,41 @@
+"""Rejects a SKU that is not three letters followed by four digits."""
+directive @_skuFormat on INPUT_FIELD_DEFINITION
+
+"""Whether a product can be ordered right now."""
+enum Availability {
+  IN_STOCK
+  OUT_OF_STOCK
+}
+
+"""A product on sale."""
+type Product {
+  """The stock keeping unit. Unique across the catalogue."""
+  sku: String!
+  label: String!
+  """The price in cents, to keep the wire format free of floating point."""
+  priceCents: Int!
+  availability: Availability!
+}
+
+"""Identifies the one product to read."""
+input ProductQuery {
+  sku: String! @_skuFormat
+}
+
+"""The full state of a product, as the caller wants it stored."""
+input ProductInput {
+  sku: String! @_skuFormat
+  label: String!
+  priceCents: Int!
+  availability: Availability = IN_STOCK
+}
+
+type Query {
+  """Reads one product, or null when the catalogue does not hold it."""
+  product(query: ProductQuery!): Product
+}
+
+type Mutation {
+  """Creates a product, or replaces the one already carrying that SKU."""
+  upsertProduct(input: ProductInput!): Product!
+}

@@ -1,0 +1,3 @@
+# The generator writes LF, and CI regenerates the example and diffs the result.
+# Without this, a Windows checkout stores CRLF and the diff is never clean.
+* text=auto eol=lf

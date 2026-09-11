@@ -11,7 +11,6 @@ import 'package:collection/collection.dart';
 import 'package:gql/ast.dart';
 import 'package:gql/language.dart' as gql_lang;
 import 'package:graphql_openapi_codegen/src/class_generator.dart';
-import 'package:graphql_openapi_codegen/src/config.dart';
 import 'package:graphql_openapi_codegen/src/consts.dart';
 import 'package:graphql_openapi_codegen/src/doc_routes_generator.dart';
 import 'package:graphql_openapi_codegen/src/enum_generator.dart';
@@ -286,9 +285,9 @@ Future<void> run(List<String> args) async {
 
       /// Canonical formatting, last. The generators emit readable code; only
       /// the formatter guarantees the single trailing newline the linter asks
-      /// for. Restricted to what this tool overwrites on every run: the stubs
-      /// under `resolvers/`, `rest/endpoints/` and the `valid_*` validators are
-      /// created once and then belong to whoever edits them.
+      /// for. Pointed at what this tool overwrites on every run, plus the stubs
+      /// this particular run created: never at the directories holding them,
+      /// because a stub that already existed belongs to whoever edits it.
       final formatted = await formatGeneratedSources([
         modelsOutputDirPath,
         fieldsOutputDirPath,
@@ -296,7 +295,7 @@ Future<void> run(List<String> args) async {
         path.join(restDirPath, 'rest_routes.dart'),
         path.join(validatorsDirPath, 'validators.dart'),
         path.join(routesDirPath, 'doc_routes.dart'),
-        path.join(graphqlDirPath, 'graphql_resolvers_registry.dart'),
+        ...createdOnceFiles,
       ]);
       if (formatted.exitCode != 0) {
         logMessage(
@@ -313,58 +312,37 @@ Future<void> run(List<String> args) async {
       exit(process.exitCode);
     }
 
-    if (importerConfig.gitAdd) {
-      final processGit = await Process.run('git', [
-        'add',
-        '.',
-      ], runInShell: true);
-      if (processGit.exitCode != 0) {
-        logMessage(
-          'Generated files were not staged (git add exited with '
-          '${processGit.exitCode}).',
-          type: MessageType.warning,
-        );
-      }
-    }
-
     // --- Step 5: Logging and Exit ---
 
     // Print a summary of the generated files.
+    //
+    // Laid out from the counts rather than by hand: half of these icons are two
+    // code points, so a padding counted by eye lines up in one terminal and not
+    // in the next, and one of them had lost its space altogether. Only the
+    // label is padded, which every terminal measures the same way.
+    final summary = <(String, String, int)>[
+      ('\u{1F9E9}', 'interface', interfaceCount),
+      ('\u{1F4E6}', 'type', typeCount),
+      ('\u{1F33F}', 'union', unionCount),
+      ('\u{2328}\u{FE0F}', 'input', inputCount),
+      ('\u{1F53D}', 'enum', enumCount),
+      ('\u{1F6E1}\u{FE0F}', 'validator', validatorCount),
+      ('\u{26A1}\u{FE0F}', 'resolver', resolverCount),
+      ('\u{1F50D}', 'query', queryCount),
+      ('\u{270F}\u{FE0F}', 'mutation', mutationCount),
+      ('\u{1F514}', 'subscription', subscriptionCount),
+    ];
+    final labelWidth = summary
+        .map((row) => row.$2.length)
+        .reduce((a, b) => a > b ? a : b);
+
     logMessage('===== Generated code from schema.graphql =====');
-    logMessage(
-      '🧩 Generated interface:    $interfaceCount',
-      type: MessageType.info,
-    );
-    logMessage('📦 Generated type:         $typeCount', type: MessageType.info);
-    logMessage(
-      '🌿 Generated union:        $unionCount',
-      type: MessageType.info,
-    );
-    logMessage(
-      '⌨️ Generated input:        $inputCount',
-      type: MessageType.info,
-    );
-    logMessage('🔽 Generated enum:         $enumCount', type: MessageType.info);
-    logMessage(
-      '🛡️Generated validator:    $validatorCount',
-      type: MessageType.info,
-    );
-    logMessage(
-      '⚡️ Generated resolver:     $resolverCount',
-      type: MessageType.info,
-    );
-    logMessage(
-      '🔍 Generated query:        $queryCount',
-      type: MessageType.info,
-    );
-    logMessage(
-      '✏️ Generated mutation:     $mutationCount',
-      type: MessageType.info,
-    );
-    logMessage(
-      '🔔 Generated subscription: $subscriptionCount',
-      type: MessageType.info,
-    );
+    for (final (icon, label, count) in summary) {
+      logMessage(
+        '$icon  Generated ${'$label:'.padRight(labelWidth + 2)}$count',
+        type: MessageType.info,
+      );
+    }
     logMessage('==============================================');
     logMessage(' ');
     logMessage(

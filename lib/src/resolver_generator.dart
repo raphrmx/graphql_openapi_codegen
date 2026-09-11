@@ -284,7 +284,7 @@ void registerResolver(String key, GraphQLFieldResolverFn fn) {
 }
 ''';
 
-  registryFile.writeAsStringSync(content);
+  writeCreatedOnceFile(registryFile, content);
 }
 
 void writeSubscriptionResolverStub(

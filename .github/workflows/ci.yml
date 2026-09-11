@@ -35,12 +35,34 @@ jobs:
       - name: Install dependencies
         run: dart pub get
 
+      # Before the example is generated, so the `.g.dart` parts are not here to
+      # be judged: `json_serializable` formats those with its own `dart_style`,
+      # which is not always the one `dart format` ships.
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
 
+      # example/ is its own package, and `dart analyze` at the root descends
+      # into it.
+      - name: Install the example's dependencies
+        run: dart pub get
+        working-directory: example
+
+      # This has to come before the analysis. The `.g.dart` parts are not in
+      # the repository, so until the generator has run the example is a set of
+      # libraries whose `part` files do not exist.
+      - name: Generate the example
+        run: dart run graphql_openapi_codegen
+        working-directory: example
+
+      # Everything else in the example is committed, so generating it again is
+      # a no-op. A diff here means a change to what the generator emits landed
+      # without the example being refreshed to match it.
+      - name: The example is unchanged
+        run: git diff --exit-code -- example
+
       # Language features are gated by the pubspec lower bound, so this also
       # guards the declared Dart 3.8 floor. The generator emits lint-clean code,
-      # so it holds itself to the same bar.
+      # so it holds itself to the same bar, example included.
       - name: Analyze
         run: dart analyze --fatal-infos
 

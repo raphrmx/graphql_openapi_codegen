@@ -1,0 +1,115 @@
+openapi: 3.0.3
+info:
+  title: Acme Shop REST
+  version: "1.0.0"
+servers:
+  - url: https://api.acme.example
+paths:
+  /rest/query/product:
+    post:
+      operationId: queryProductEndpoint
+      summary: "Reads one product, or null when the catalogue does not hold it."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueryProductInput"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    allOf:
+                      - $ref: "#/components/schemas/Product"
+                    nullable: true
+  /rest/mutation/upsertProduct:
+    post:
+      operationId: mutationUpsertProductEndpoint
+      summary: "Creates a product, or replaces the one already carrying that SKU."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MutationUpsertProductInput"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    allOf:
+                      - $ref: "#/components/schemas/Product"
+components:
+  schemas:
+    QueryProductInput:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          allOf:
+            - $ref: "#/components/schemas/ProductQuery"
+    MutationUpsertProductInput:
+      type: object
+      required:
+        - input
+      properties:
+        input:
+          allOf:
+            - $ref: "#/components/schemas/ProductInput"
+    Product:
+      type: object
+      description: "A product on sale."
+      properties:
+        sku:
+          description: "The stock keeping unit. Unique across the catalogue."
+          type: string
+        label:
+          type: string
+        priceCents:
+          description: "The price in cents, to keep the wire format free of floating point."
+          type: integer
+        availability:
+          allOf:
+            - $ref: "#/components/schemas/Availability"
+    ProductQuery:
+      type: object
+      description: "Identifies the one product to read."
+      required:
+        - sku
+      properties:
+        sku:
+          type: string
+    ProductInput:
+      type: object
+      description: "The full state of a product, as the caller wants it stored."
+      required:
+        - sku
+        - label
+        - priceCents
+      properties:
+        sku:
+          type: string
+        label:
+          type: string
+        priceCents:
+          type: integer
+        availability:
+          allOf:
+            - $ref: "#/components/schemas/Availability"
+          nullable: true
+    Availability:
+      type: string
+      description: "Whether a product can be ordered right now."
+      enum:
+        - IN_STOCK
+        - OUT_OF_STOCK

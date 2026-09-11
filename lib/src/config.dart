@@ -11,28 +11,27 @@ import 'package:yaml/yaml.dart';
 ///
 /// ```yaml
 /// graphql_openapi_codegen:
-///   schema: lib/v1/schema.graphql
-///   class_prefix: Bmc
-///   copy_with: true
-///   api_name: Middleware
-///   git_add: false
-///   api_servers:
-///     - https://example.com/api
-///   output:
-///     models: lib/v1/models
-///     fields: lib/v1/graphql/fields
-///     validators: lib/v1/validators
-///     resolvers: lib/v1/resolvers
-///     graphql: lib/v1/graphql
-///     rest: lib/v1/rest
-///     endpoints: lib/v1/rest/endpoints
-///     openapi: assets
-///     routes: lib/routes
-///   doc_routes:
-///     graphql: /graphql-doc      # '' disables the page
-///     rest: /rest-doc
-///     graphql_endpoint: /graphql
-///     openapi_url: /openapi.yaml
+///   schema: lib/schema.graphql    # the SDL every generator reads
+///   class_prefix: ''              # replaces the leading `_` of a host type
+///   copy_with: true               # emit @CopyWith() on the models
+///   api_name: ''                  # OpenAPI title, defaults to the package name
+///   api_servers: []               # OpenAPI `servers:` entries
+///   routes:                     # every entry here is an HTTP path
+///     graphql: /graphql           # where the GraphQL API answers
+///     rest: ''                    # prefix the REST endpoints are mounted under
+///     graphql_doc: /graphql-doc   # the Playground page, '' disables it
+///     rest_doc: /rest-doc         # the Swagger UI page, '' disables it
+///     openapi: /openapi.yaml      # where Swagger fetches the document
+///   output:                    # every entry here is a filesystem path
+///     models: lib/models          # the model, input and enum classes
+///     fields: lib/graphql/fields  # the Query/Mutation/Subscription field lists
+///     validators: lib/validators  # one stub per custom `@_directive`
+///     resolvers: lib/resolvers    # the resolver stubs and register_all.dart
+///     graphql: lib/graphql        # graphql_resolvers_registry.dart
+///     rest: lib/rest              # rest_routes.dart
+///     endpoints: lib/rest/endpoints  # one handler per operation
+///     openapi: assets             # openapi.yaml
+///     routes: lib/routes          # the two documentation pages and doc_routes.dart
 /// ```
 class ImporterConfig {
   /// The name of the package, from `pubspec.yaml`. Used to write `package:`
@@ -63,34 +62,52 @@ class ImporterConfig {
   /// The base URLs listed under `servers:` in the generated OpenAPI document.
   final List<String> apiServers;
 
-  /// Route of the generated GraphQL documentation page, a GraphQL Playground
-  /// pointed at [docGraphQLEndpoint]. Empty disables the page.
-  final String docGraphQLPath;
+  /// Route the GraphQL API answers on. The Playground page sends its queries
+  /// here.
+  final String graphqlPath;
 
-  /// Route of the generated REST documentation page, a Swagger UI pointed at
-  /// [docOpenApiUrl]. Empty disables the page.
-  final String docRestPath;
+  /// Prefix the generated REST endpoints are mounted under. It becomes the
+  /// default `prefix` of `registerRestRoutes` and prefixes the `paths:` of the
+  /// OpenAPI document, so the two cannot drift apart.
+  final String restPrefix;
 
-  /// Where the documentation page sends its GraphQL queries.
-  final String docGraphQLEndpoint;
+  /// Route of the generated GraphQL Playground page. Empty disables it.
+  final String graphqlDocPath;
 
-  /// Where the documentation page fetches the OpenAPI document.
-  final String docOpenApiUrl;
+  /// Route of the generated Swagger UI page. Empty disables it.
+  final String restDocPath;
+
+  /// Where the Swagger UI fetches the OpenAPI document. An HTTP path, not the
+  /// place the file is written, which is [openApiDir].
+  final String openApiUrl;
 
   /// Directory the route files are written to.
   final String routesDir;
 
-  /// Whether a successful generation stages its result with `git add`.
-  /// Off by default: a tool has no business touching the index uninvited.
-  final bool gitAdd;
-
+  /// Directory the model, input and enum classes are written to.
   final String modelsDir;
+
+  /// Directory the `Query`, `Mutation` and `Subscription` field lists are
+  /// written to.
   final String fieldsDir;
+
+  /// Directory the validator stubs and their facade are written to.
   final String validatorsDir;
+
+  /// Directory the resolver stubs and `register_all.dart` are written to.
   final String resolversDir;
+
+  /// Directory `graphql_resolvers_registry.dart` is written to.
   final String graphqlDir;
+
+  /// Directory `rest_routes.dart` is written to.
   final String restDir;
+
+  /// Directory the per-operation REST handlers are written to.
   final String endpointsDir;
+
+  /// Directory `openapi.yaml` is written to. Where the file lands, not where it
+  /// is served from, which is [openApiUrl].
   final String openApiDir;
 
   const ImporterConfig({
@@ -101,12 +118,12 @@ class ImporterConfig {
     this.copyWith = true,
     this.apiName = '',
     this.apiServers = const [],
-    this.docGraphQLPath = '/graphql-doc',
-    this.docRestPath = '/rest-doc',
-    this.docGraphQLEndpoint = '/graphql',
-    this.docOpenApiUrl = '/openapi.yaml',
+    this.graphqlPath = '/graphql',
+    this.restPrefix = '',
+    this.graphqlDocPath = '/graphql-doc',
+    this.restDocPath = '/rest-doc',
+    this.openApiUrl = '/openapi.yaml',
     this.routesDir = 'lib/routes',
-    this.gitAdd = false,
     this.modelsDir = 'lib/models',
     this.fieldsDir = 'lib/graphql/fields',
     this.validatorsDir = 'lib/validators',
@@ -149,7 +166,7 @@ class ImporterConfig {
       return ImporterConfig(packageName: name, packageVersion: version);
     }
 
-    final docs = section['doc_routes'];
+    final docs = section['routes'];
     final Map<dynamic, dynamic> doc = docs is YamlMap
         ? docs
         : const <dynamic, dynamic>{};
@@ -188,17 +205,11 @@ class ImporterConfig {
       endpointsDir: str(out, 'endpoints', fallback.endpointsDir),
       openApiDir: str(out, 'openapi', fallback.openApiDir),
       routesDir: str(out, 'routes', fallback.routesDir),
-      gitAdd: section['git_add'] is bool
-          ? section['git_add'] as bool
-          : fallback.gitAdd,
-      docGraphQLPath: str(doc, 'graphql', fallback.docGraphQLPath),
-      docRestPath: str(doc, 'rest', fallback.docRestPath),
-      docGraphQLEndpoint: str(
-        doc,
-        'graphql_endpoint',
-        fallback.docGraphQLEndpoint,
-      ),
-      docOpenApiUrl: str(doc, 'openapi_url', fallback.docOpenApiUrl),
+      graphqlPath: str(doc, 'graphql', fallback.graphqlPath),
+      restPrefix: str(doc, 'rest', fallback.restPrefix),
+      graphqlDocPath: str(doc, 'graphql_doc', fallback.graphqlDocPath),
+      restDocPath: str(doc, 'rest_doc', fallback.restDocPath),
+      openApiUrl: str(doc, 'openapi', fallback.openApiUrl),
     );
   }
 }

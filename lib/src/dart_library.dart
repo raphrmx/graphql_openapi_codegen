@@ -101,6 +101,22 @@ String dartStringLiteral(String value) {
   return '$quote$escaped$quote';
 }
 
+/// The stubs this run created, in the order they were written.
+///
+/// A stub is created once and then belongs to whoever edits it, so the
+/// formatter must never be pointed at the directory holding them. It still has
+/// to run over a stub the moment it appears, or the very first `dart analyze`
+/// of a fresh package reports formatting on files nobody has touched yet.
+final List<String> createdOnceFiles = <String>[];
+
+/// Writes a file the generator creates once and never overwrites, and records
+/// it so this run formats it exactly once. See [createdOnceFiles].
+void writeCreatedOnceFile(File file, String content) {
+  file.createSync(recursive: true);
+  file.writeAsStringSync(content);
+  createdOnceFiles.add(file.path);
+}
+
 /// Runs `dart format` over the directories the importer writes into.
 ///
 /// The generators emit readable code, not canonical code. Only the formatter

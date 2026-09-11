@@ -1,8 +1,8 @@
 name: graphql_openapi_codegen
 description: >-
   Generates a Dart server from a GraphQL schema: models, enums, resolver stubs,
-  validators, REST endpoints, an OpenAPI document and the pages that document
-  them. Schema-first, for servers rather than clients.
+  validators, REST endpoints and an OpenAPI document. Schema-first, for servers
+  not clients.
 version: 1.0.0
 homepage: https://www.comapps.be
 repository: https://github.com/raphrmx/graphql_openapi_codegen
@@ -25,5 +25,5 @@ dependencies:
   yaml: ^3.1.4
 
 dev_dependencies:
-  lint: ^2.14.0
-  test: ^1.32.0
+  lint: ^2.8.0
+  test: ^1.31.0

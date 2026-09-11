@@ -568,7 +568,9 @@ void ensureOpResolverStub({
   /// returns immediately, ensuring that the developer's work is never overwritten.
   if (file.existsSync()) return;
 
-  final imports = <String>{"import 'dart:async';"};
+  /// `Future` and `Stream` are both exported by `dart:core`, so the stub only
+  /// ever imports the models it hands back.
+  final imports = ImportBlock();
 
   // List of scalars
   const scalarNames = {
@@ -602,7 +604,7 @@ void ensureOpResolverStub({
     /// Adds an import statement for the corresponding model file. The path is
     /// constructed based on a helper function, assuming a known file structure.
     if (sym.importPath.isNotEmpty) {
-      imports.add("import '../models/${sym.importPath}';");
+      imports.addRelative(resolversDirPath, '../models/${sym.importPath}');
     }
   }
 
@@ -612,10 +614,7 @@ void ensureOpResolverStub({
       '// Created once by GraphQL Code-Gen. Edit freely; it will NOT be overwritten.',
     );
 
-  /// Adds the collected import statements, sorted for consistent output.
-  for (final i in (imports.toList()..sort())) {
-    buf.writeln(i);
-  }
+  buf.write(imports.render());
   buf.writeln();
 
   /// Writes the function signature and a placeholder `UnimplementedError` to guide the developer.
@@ -632,11 +631,8 @@ void ensureOpResolverStub({
   buf.write(body.toString());
   buf.writeln('}');
 
-  /// Ensures the directory structure exists before writing the file.
-  file.createSync(recursive: true);
-
-  /// Writes the content to the new resolver file.
-  file.writeAsStringSync(buf.toString());
+  /// Writes the new resolver file, and queues it for this run's formatting.
+  writeCreatedOnceFile(file, buf.toString());
 }
 
 /// Finds all GraphQL union types that contain a given type.

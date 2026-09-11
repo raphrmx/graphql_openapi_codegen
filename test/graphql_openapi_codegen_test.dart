@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:graphql_openapi_codegen/src/config.dart';
 import 'package:graphql_openapi_codegen/src/dart_library.dart';
+import 'package:graphql_openapi_codegen/src/validator_generator.dart';
 import 'package:test/test.dart';
 
 /// Writes [pubspec] to a throwaway file and loads the configuration from it.
@@ -22,7 +23,7 @@ void main() {
       expect(config.modelsDir, 'lib/models');
       expect(config.classPrefix, isEmpty);
       expect(config.copyWith, isTrue);
-      expect(config.gitAdd, isFalse);
+      expect(config.restPrefix, isEmpty);
     });
 
     test('reads the version, and stands in for a package that has none', () {
@@ -38,15 +39,15 @@ graphql_openapi_codegen:
   class_prefix: Bmc
   copy_with: false
   api_name: Acme Shop
-  git_add: true
   api_servers:
     - https://one.example
     - https://two.example
-  doc_routes:
-    graphql: /docs/playground
-    rest: /docs/swagger
-    graphql_endpoint: /api/graphql
-    openapi_url: /static/openapi.yaml
+  routes:
+    graphql: /api/graphql
+    rest: /rest
+    graphql_doc: /docs/playground
+    rest_doc: /docs/swagger
+    openapi: /static/openapi.yaml
   output:
     models: lib/v1/models
     routes: lib/v1/routes
@@ -56,12 +57,12 @@ graphql_openapi_codegen:
       expect(config.classPrefix, 'Bmc');
       expect(config.copyWith, isFalse);
       expect(config.apiName, 'Acme Shop');
-      expect(config.gitAdd, isTrue);
       expect(config.apiServers, ['https://one.example', 'https://two.example']);
-      expect(config.docGraphQLPath, '/docs/playground');
-      expect(config.docRestPath, '/docs/swagger');
-      expect(config.docGraphQLEndpoint, '/api/graphql');
-      expect(config.docOpenApiUrl, '/static/openapi.yaml');
+      expect(config.graphqlPath, '/api/graphql');
+      expect(config.restPrefix, '/rest');
+      expect(config.graphqlDocPath, '/docs/playground');
+      expect(config.restDocPath, '/docs/swagger');
+      expect(config.openApiUrl, '/static/openapi.yaml');
       expect(config.modelsDir, 'lib/v1/models');
       expect(config.routesDir, 'lib/v1/routes');
       // Not declared, so still the fallback.
@@ -221,6 +222,33 @@ library;
 
     test('omits the header when there is nothing to document', () {
       expect(renderGeneratedLibrary(body: 'class A {}'), 'class A {}\n');
+    });
+  });
+
+  group('validator naming', () {
+    test('prefixes valid and drops the leading underscore', () {
+      expect(validatorNameFor('_vatNo'), 'validVatNo');
+      expect(validatorNameFor('_skuFormat'), 'validSkuFormat');
+    });
+
+    test('a directive already named valid says it twice', () {
+      // Not a bug to route around: the rule is one rule, and the README says
+      // to name the directive after the field rather than after the check.
+      expect(validatorNameFor('_validVat'), 'validValidVat');
+    });
+  });
+
+  group('created once files', () {
+    test('records what it wrote, so the run formats it exactly once', () {
+      final dir = Directory.systemTemp.createTempSync('goc_once');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final file = File('${dir.path}/nested/stub.dart');
+
+      createdOnceFiles.clear();
+      writeCreatedOnceFile(file, 'void main() {}\n');
+
+      expect(file.readAsStringSync(), 'void main() {}\n');
+      expect(createdOnceFiles, [file.path]);
     });
   });
 

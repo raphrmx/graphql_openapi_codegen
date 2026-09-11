@@ -38,7 +38,7 @@ void generateOpenApiYaml(
   for (final e in [...queryFiles, ...mutationFiles]) {
     final field = e.field;
 
-    b.writeln('  ${e.routePath}:');
+    b.writeln('  ${importerConfig.restPrefix}${e.routePath}:');
     b.writeln('    post:');
     b.writeln('      operationId: ${e.handlerName}');
     if (field?.description?.value.isNotEmpty ?? false) {
@@ -86,7 +86,7 @@ void generateOpenApiYaml(
 
   // ---------- PATHS: Subscription (SSE) ----------
   for (final e in subscriptionFiles) {
-    b.writeln('  ${e.routePath}:');
+    b.writeln('  ${importerConfig.restPrefix}${e.routePath}:');
     b.writeln('    get:');
     b.writeln('      operationId: ${e.handlerName}');
     if (e.field?.description?.value.isNotEmpty ?? false) {

@@ -1,0 +1,8 @@
+# The generated code is held to the same bar as the generator itself.
+include: package:lint/strict.yaml
+
+analyzer:
+  exclude:
+    # `json_serializable` writes these, not this package. Two of its lines trip
+    # `avoid_redundant_argument_values` and `unnecessary_null_checks`.
+    - lib/**.g.dart

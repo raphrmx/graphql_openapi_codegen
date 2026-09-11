@@ -4,3 +4,8 @@
 .vscode/
 build/
 pubspec.lock
+
+# The example's part files. `.pubignore` takes precedence over `.gitignore`
+# for pub, so saying it here keeps them out of the archive whatever the
+# directory it is published from.
+*.g.dart

@@ -35,6 +35,14 @@ int generateValidators(
 /// Parameters:
 /// - [validatorsDir]: The directory where the facade file is created.
 /// - [directives]: A set of unique GraphQL directive names to be exported.
+/// The Dart function a custom directive is validated by.
+///
+/// `@_vatNo` becomes `validVatNo`, in `valid_vat_no.dart`. The facade and the
+/// stub writer both go through here: a directive whose file and whose export
+/// disagree produces a package that does not compile.
+String validatorNameFor(String directiveName) =>
+    'valid${ReCase(directiveName.substring(1)).pascalCase}';
+
 void _generateValidatorsFacade(
   Directory validatorsDir,
   Set<String> directives,
@@ -46,10 +54,7 @@ void _generateValidatorsFacade(
   // derived from the directive name using a snake_case convention. They are
   // sorted so the directives come out in the order the linter expects.
   final exports =
-      directives
-          .map((d) => toSnakeCase('valid${ReCase(d.substring(1)).pascalCase}'))
-          .toList()
-        ..sort();
+      directives.map((d) => toSnakeCase(validatorNameFor(d))).toList()..sort();
   for (final validatorFileName in exports) {
     buffer.writeln("export '$validatorFileName.dart';");
   }
@@ -86,8 +91,7 @@ int _generateIndividualValidators(
   for (final entry in directives.entries) {
     final directiveName = entry.key;
     final description = entry.value;
-    final validatorName =
-        'valid${ReCase(directiveName.substring(1)).pascalCase}';
+    final validatorName = validatorNameFor(directiveName);
     final validatorFileName = toSnakeCase(validatorName);
     final validatorFile = File(
       path.join(validatorsDir.path, '$validatorFileName.dart'),
@@ -122,16 +126,17 @@ class ClassConstructor {
           'It is a placeholder that is generated once to allow custom validation logic.',
           if (description != null && description.isNotEmpty)
             'GraphQL Description: $description',
-          'To implement the validation, replace the `throw` statement with your own logic.',
+          'To implement it, replace the `return true` with your own logic.',
           'The function should return `true` if the value is valid and `false` otherwise.',
           'The function is called automatically in the constructor of the generated models.',
           'Example:',
           '```dart',
-          exampleCode,
+          exampleCode.trimRight(),
           '```',
         ],
         body: body.toString(),
       );
+      createdOnceFiles.add(validatorFile.path);
     }
 
     validatorCount++;
