@@ -70,6 +70,21 @@ graphql_openapi_codegen:
       expect(config.validatorsDir, 'lib/validators');
     });
 
+    test('an empty documentation path turns the page off', () {
+      final config = loadFrom('''
+name: acme
+graphql_openapi_codegen:
+  routes:
+    graphql_doc: ''
+    rest_doc: ''
+''');
+
+      expect(config.graphqlDocPath, isEmpty);
+      expect(config.restDocPath, isEmpty);
+      // An absent key still falls back.
+      expect(loadFrom('name: acme\n').graphqlDocPath, '/graphql-doc');
+    });
+
     test('refuses a pubspec it cannot identify', () {
       expect(() => loadFrom('description: no name here\n'), throwsStateError);
       expect(

@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.1.1
+
+### Fixed
+- `routes.graphql_doc: ''` and `routes.rest_doc: ''` did not turn the pages off.
+  A blank value was read as "not set" and replaced by the default path, so a
+  package serving its own documentation got the generated pages anyway.
+
 ## 1.1.0
 
 ### Added

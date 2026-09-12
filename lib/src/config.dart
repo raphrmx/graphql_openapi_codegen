@@ -177,9 +177,18 @@ class ImporterConfig {
         : const <dynamic, dynamic>{};
 
     const fallback = ImporterConfig(packageName: '');
+
+    /// A blank value means "not set", and falls back.
     String str(Map<dynamic, dynamic> from, String key, String orElse) {
       final value = from[key];
       return value is String && value.trim().isNotEmpty ? value.trim() : orElse;
+    }
+
+    /// A blank value is kept, because for a documentation page it is what
+    /// turns the page off. Only an absent key falls back.
+    String strOrBlank(Map<dynamic, dynamic> from, String key, String orElse) {
+      final value = from[key];
+      return value is String ? value.trim() : orElse;
     }
 
     return ImporterConfig(
@@ -207,8 +216,8 @@ class ImporterConfig {
       routesDir: str(out, 'routes', fallback.routesDir),
       graphqlPath: str(doc, 'graphql', fallback.graphqlPath),
       restPrefix: str(doc, 'rest', fallback.restPrefix),
-      graphqlDocPath: str(doc, 'graphql_doc', fallback.graphqlDocPath),
-      restDocPath: str(doc, 'rest_doc', fallback.restDocPath),
+      graphqlDocPath: strOrBlank(doc, 'graphql_doc', fallback.graphqlDocPath),
+      restDocPath: strOrBlank(doc, 'rest_doc', fallback.restDocPath),
       openApiUrl: str(doc, 'openapi', fallback.openApiUrl),
     );
   }
