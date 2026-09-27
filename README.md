@@ -1,13 +1,10 @@
-<a alt="ComApps Logo" href="https://comapps.be" target="_blank" rel="noreferrer"><img src="https://www.comapps.be/wp-content/uploads/2026/09/CompleteLogoHorizontalMini.png" style="margin: 15px"></a>
-
 # GraphQL OpenAPI Codegen
 
+[![Pub Version](https://img.shields.io/pub/v/graphql_openapi_codegen?color=0175C2)](https://pub.dev/packages/graphql_openapi_codegen)
 [![Build](https://img.shields.io/github/actions/workflow/status/raphrmx/graphql_openapi_codegen/ci.yml?branch=main&label=build)](https://github.com/raphrmx/graphql_openapi_codegen/actions/workflows/ci.yml)
-[![Pub Version](https://img.shields.io/pub/v/graphql_openapi_codegen?color=blue)](https://pub.dev/packages/graphql_openapi_codegen)
-[![Maintainer](https://img.shields.io/badge/Maintainer-Raphael_Vrient-purple)](https://comapps.be)
-[![License](https://img.shields.io/badge/Licence-MIT-blue)](LICENSE)
-![Maintenance](https://img.shields.io/badge/Maintained-yes-success)
-![Platforms](https://img.shields.io/badge/Platforms-Android,_iOS,_macOS,_Windows,_Linux-22375C.svg)
+![Maintainer](https://img.shields.io/badge/Maintainer-Raphael_Vrient-733d90)
+[![Licence](https://img.shields.io/badge/Licence-MIT-8C6A3F)](LICENSE)
+![Platforms](https://img.shields.io/badge/Platforms-Android,_iOS,_macOS,_Windows,_Linux,_Web-22375C.svg)
 
 ## One schema in, a whole backend out
 
