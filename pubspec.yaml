@@ -35,7 +35,7 @@ environment:
 dependencies:
   build_runner: ^2.16.1            # builder
   collection: ^1.19.1
-  copy_with_extension_gen: ^17.1.0 # builder
+  copy_with_extension_gen: ^18.0.0 # builder
   gql: ^1.0.1
   graphql_generator3: ^3.2.1       # builder
   json_serializable: ^6.14.1       # builder

@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.2.0
+
+- Update copy_with_extension_gen to 18.0.0
+
 ## 1.1.2
 
 ### Changed
