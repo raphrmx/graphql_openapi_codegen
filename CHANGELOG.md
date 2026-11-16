@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.3.0
+
+### Changed
+
+- Requires Dart 3.11 or later, up from 3.8.
+
 ## 1.2.0
 
 - Update copy_with_extension_gen to 18.0.0

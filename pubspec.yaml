@@ -3,7 +3,7 @@ description: >-
   Generates a Dart server from a GraphQL schema: models, enums, resolver stubs,
   validators, REST endpoints and an OpenAPI document. Schema-first, for servers
   not clients.
-version: 1.2.0
+version: 1.3.0
 homepage: https://packages.comapps.be/#graphql_openapi_codegen
 repository: https://github.com/raphrmx/graphql_openapi_codegen
 issue_tracker: https://github.com/raphrmx/graphql_openapi_codegen/issues
@@ -17,7 +17,7 @@ topics:
   - rest
 
 environment:
-  sdk: ^3.8.0
+  sdk: '>=3.11.0 <4.0.0'
 
 # Two kinds of entry below, and `sort_pub_dependencies` wants them in one sorted
 # list, so they are told apart by comment rather than by grouping.
@@ -33,17 +33,17 @@ environment:
 # dependencies will offer to drop all four; they are used by `build_runner`,
 # not by a Dart import.
 dependencies:
-  build_runner: ^2.16.1            # builder
+  build_runner: ^2.17.1
   collection: ^1.19.1
-  copy_with_extension_gen: ^18.0.0 # builder
+  copy_with_extension_gen: ^18.0.1
   gql: ^1.0.1
-  graphql_generator3: ^3.2.1       # builder
-  json_serializable: ^6.14.1       # builder
+  graphql_generator3: ^3.3.0
+  json_serializable: ^6.15.2
   path: ^1.9.1
   recase: ^4.1.0
   yaml: ^3.1.4
 
 # Only what it takes to work on this package itself.
 dev_dependencies:
-  lint: ^2.9.0
-  test: ^1.31.0
+  lint: ^2.14.0
+  test: ^1.33.0
